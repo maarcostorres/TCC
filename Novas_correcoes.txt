@@ -1,0 +1,170 @@
+corrigi de novo e tem mais coisa para corrigir:
+
+
+1)
+Figura 1 ilustra o desenho de alto nível da arquitetura da solução.
+figura está boa, mas há um pequeno problema: ela está em inglês, enquanto o artigo está em português. Isso não impede a aprovação, mas seria mais adequado traduzir os termos principais da figura:
+
+Client/Frontend → Cliente/Frontend;
+Server/Backend → Servidor/Backend;
+External Database → Banco de Dados Externo;
+External AI Services → Serviços Externos de IA;
+HTTP Requests → Requisições HTTP;
+AI Inference → Inferência por IA.
+
+Também seria bom ampliar um pouco a explicação abaixo da figura, dizendo o papel de cada camada.
+
+2)
+Pendências nas referências
+
+4.1 Falta “Acesso em” nas referências online
+
+As referências [5], [6] e [9] têm URL, mas não possuem data de acesso. Em trabalhos acadêmicos brasileiros, especialmente no padrão ABNT, o ideal é colocar:
+
+Disponível em: <URL>. Acesso em: 4 jun. 2026.
+
+Exemplo corrigido:
+
+MARITACA AI. ENEM-Benchmark: A Multi-modal Dataset for Evaluating LLMs. Versão 1.0. Hugging Face, 2024. Disponível em: <https://huggingface.co/datasets/maritaca-ai/enem>. Acesso em: 4 jun. 2026.
+
+
+4.2 Referência [12] ainda precisa ser verificada
+
+A referência [12] aparece assim:
+
+MEYER, Ditmar. Tutoria para o ENEM com Inteligência Artificial. 2023. Dissertação (Mestrado em Sistemas de Informação) – Universidade de São Paulo (USP), São Paulo, 2023. Disponível em: <https://teses.usp.br/>.
+
+Essa referência ainda é frágil porque o link é genérico para o portal de teses da USP, não para a dissertação específica. Além disso, seria necessário confirmar se essa dissertação existe exatamente com esse título, autor, programa e ano. Se não houver certeza, é melhor remover ou substituir por uma referência verificável.
+
+
+4.3 Referências de tecnologias usadas sumiram ou não estão citadas na lista
+
+No texto, o artigo fala de Next.js, TypeScript, Tailwind CSS e MongoDB, mas na lista de referências final não aparecem mais as documentações dessas tecnologias. Isso não é necessariamente obrigatório se a banca aceitar como conhecimento técnico comum, mas como o artigo cita tecnologias específicas, seria melhor manter referências oficiais para elas.
+
+Sugestão de adicionar:
+
+NEXT.JS. Next.js Documentation. Vercel, 2026.
+TYPESCRIPT. TypeScript Documentation. Microsoft, 2026.
+TAILWIND CSS. Tailwind CSS Documentation. Tailwind Labs, 2026.
+MONGODB. MongoDB Documentation. MongoDB Inc., 2026.
+
+
+
+
+Problemas que ainda permanecem no PDF
+
+Apesar das correções principais terem sido aplicadas, ainda há alguns problemas que eu corrigiria antes da entrega final.
+
+5.1 Erro gramatical na folha de rosto
+
+Na página 2 está escrito:
+
+Artigo apresentada ao Curso de Ciência da Computação...
+
+O correto é:
+
+Artigo apresentado ao Curso de Ciência da Computação da Universidade Vila Velha como parte dos requisitos para obtenção do grau de Bacharel em Ciência da Computação.
+
+
+
+
+5.2 Título da seção 4 está errado
+
+No sumário e no corpo do texto aparece:
+
+4.0.1 Definição das Tecnológicas
+
+O correto seria:
+
+4.1 Definição das Tecnologias
+
+Há dois problemas:
+
+a numeração 4.0.1 está estranha;
+a expressão “Definição das Tecnológicas” está incorreta.
+
+O certo é “tecnologias”, não “tecnológicas”.
+
+Sugestão:
+
+4.1 Tecnologias Utilizadas
+
+ou
+
+4.1 Definição das Tecnologias
+
+
+
+
+
+
+
+5.3 Objetivos específicos ainda estão pobres
+
+Os objetivos específicos continuam muito curtos e não cobrem tudo o que o trabalho realmente fez.
+
+Atualmente aparecem apenas três objetivos:
+
+Modelagem de requisitos;
+Implementação de IA;
+Validação técnica.
+
+Mas o trabalho também fez:
+
+curadoria de questões do ENEM-Benchmark;
+desenvolvimento de plataforma web;
+implementação de dashboard;
+geração de feedback didático;
+avaliação pedagógica preliminar.
+
+Sugestão de reescrita:
+
+Os objetivos específicos deste trabalho são:
+
+levantar e especificar os requisitos funcionais e não funcionais da plataforma;
+selecionar, tratar e organizar questões de Ciências Humanas provenientes do dataset ENEM-Benchmark;
+desenvolver uma plataforma web com módulos de autenticação, atividades, mini provas, dashboard de desempenho e tutor IA;
+integrar a plataforma a um modelo de linguagem por meio da API Groq;
+gerar feedbacks didáticos automatizados a partir da resposta do estudante e do gabarito oficial;
+avaliar preliminarmente a estabilidade técnica do protótipo e a qualidade pedagógica dos feedbacks gerados.
+
+
+
+
+
+
+
+5.4 Há uma inconsistência na justificativa
+
+Na justificativa aparece:
+
+“soluções open source que unam algoritmos de repetição espaçada dos aplicativos de mensagens e ao poder de processamento...”
+
+A frase está confusa. Parece que o correto seria:
+
+“soluções open source que integrem algoritmos de repetição espaçada, notificações em aplicativos de mensagens e o poder de processamento de linguagem natural dos modelos de linguagem modernos.”
+
+Essa correção melhora a clareza.
+
+
+
+
+
+
+5.5 A metodologia fala em “motor de repetição”, mas o artigo pouco mostra essa parte
+
+Nos objetivos específicos aparece:
+
+“integração entre o motor de repetição e o servidor web.”
+
+Porém, o restante do artigo dá muito mais destaque ao Tutor IA, dashboard, MongoDB, ENEM-Benchmark e feedback. A repetição espaçada aparece na introdução e justificativa, mas não fica claro se o motor de repetição foi realmente implementado.
+
+Então há duas opções:
+
+Opção 1: se o motor de repetição foi implementado, criar uma subseção explicando como ele funciona.
+
+Opção 2: se não foi implementado, remover ou suavizar essa promessa. (No caso vai ser essa opção)
+
+Sugestão mais segura:
+
+“Definir os requisitos técnicos e pedagógicos necessários para a integração entre questões educacionais, análise de desempenho e geração automatizada de feedback didático.”
