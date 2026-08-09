@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import Alternativas from '@/components/Alternativas';
 import Enunciado from '@/components/Enunciado';
-import { type Alternativa, type QuestaoPublica } from '@/lib/enem';
+import { rotuloDaFonte, type Alternativa, type QuestaoPublica } from '@/lib/enem';
 
 type Correcao = { acertou: boolean; gabarito: Alternativa };
 
@@ -150,7 +150,8 @@ export default function EstudoPage() {
             Questão {indice + 1} de {questoes.length}
           </h1>
           <p className="text-xs text-slate-500 mt-1 uppercase tracking-widest font-semibold">
-            ENEM {questao.exam} · questão {questao.questionNumber} · Ciências Humanas
+            {rotuloDaFonte(questao)} · questão {questao.questionNumber}
+            {questao.disciplinas?.length ? ` · ${questao.disciplinas.join(', ')}` : ' · Ciências Humanas'}
           </p>
         </div>
 

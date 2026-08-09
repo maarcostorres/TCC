@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { attemptsCollection, questionsCollection } from '@/lib/db';
-import { AREA_ALVO } from '@/lib/enem';
+import { AREA_ALVO, FONTE_LABELS } from '@/lib/enem';
 import { getSessao } from '@/lib/session';
 
 export type Estatisticas = {
@@ -12,7 +12,7 @@ export type Estatisticas = {
   simuladosConcluidos: number;
   latenciaMediaMs: number | null;
   latenciaP95Ms: number | null;
-  porEdicao: { exam: string; total: number; acertos: number; taxaAcerto: number }[];
+  porEdicao: { prova: string; total: number; acertos: number; taxaAcerto: number }[];
   ultimasSessoes: { data: string; total: number; acertos: number; taxaAcerto: number }[];
 };
 
@@ -49,22 +49,25 @@ export async function GET() {
       .map((t) => t.latenciaIaMs)
       .filter((valor): valor is number => typeof valor === 'number' && valor > 0);
 
-    // Agrupamento por edição do exame.
+    // Agrupamento por prova. A chave inclui a banca porque só o ano deixou de
+    // identificar o exame: ENEM 2023, Fuvest 2023 e Unicamp 2023 coexistem no
+    // banco e agrupá-los pelo ano somaria provas diferentes na mesma linha.
     const porEdicaoMapa = new Map<string, { total: number; acertos: number }>();
     for (const tentativa of tentativas) {
-      const atual = porEdicaoMapa.get(tentativa.exam) ?? { total: 0, acertos: 0 };
+      const prova = `${tentativa.fonteLabel || FONTE_LABELS.enem} ${tentativa.exam}`;
+      const atual = porEdicaoMapa.get(prova) ?? { total: 0, acertos: 0 };
       atual.total += 1;
       if (tentativa.acertou) atual.acertos += 1;
-      porEdicaoMapa.set(tentativa.exam, atual);
+      porEdicaoMapa.set(prova, atual);
     }
 
     const porEdicao = [...porEdicaoMapa.entries()]
-      .map(([exam, dados]) => ({
-        exam,
+      .map(([prova, dados]) => ({
+        prova,
         ...dados,
         taxaAcerto: Math.round((dados.acertos / dados.total) * 100),
       }))
-      .sort((a, b) => a.exam.localeCompare(b.exam));
+      .sort((a, b) => a.prova.localeCompare(b.prova));
 
     // Evolução por dia de estudo — base do gráfico do dashboard.
     const porDiaMapa = new Map<string, { total: number; acertos: number }>();

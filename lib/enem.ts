@@ -1,17 +1,29 @@
 /**
- * Regras de domínio do ENEM usadas na curadoria do dataset ENEM-Benchmark.
+ * Regras de domínio do ENEM usadas na curadoria dos datasets de questões.
  *
- * O dataset da Maritaca AI distribui cada edição como um arquivo JSONL com as
- * 180 questões objetivas na ordem oficial do caderno, mas não traz o campo da
- * área do conhecimento. A área é derivada da posição da questão, que é fixa:
+ * Os datasets do ENEM distribuem cada edição com as 180 questões objetivas na
+ * ordem do caderno, mas nenhum deles traz o campo da área do conhecimento. A
+ * área é derivada da posição da questão — e essa posição mudou ao longo do
+ * tempo, o que é a armadilha central deste arquivo.
  *
- *   001-045  Linguagens, Códigos e suas Tecnologias
+ * Layout a partir de 2017 (e também em 2009):
+ *
+ *   001-045  Linguagens, Códigos e suas Tecnologias   (2009: Ciências da Natureza)
  *   046-090  Ciências Humanas e suas Tecnologias
- *   091-135  Ciências da Natureza e suas Tecnologias
+ *   091-135  Ciências da Natureza e suas Tecnologias  (2009: Linguagens)
  *   136-180  Matemática e suas Tecnologias
  *
- * A plataforma trabalha exclusivamente com o intervalo 046-090, o que
- * corresponde a 45 questões por edição (135 no ciclo 2022-2024).
+ * Layout de 2010 a 2016:
+ *
+ *   001-045  Ciências Humanas e suas Tecnologias
+ *   046-090  Ciências da Natureza e suas Tecnologias
+ *   091-135  Linguagens, Códigos e suas Tecnologias
+ *   136-180  Matemática e suas Tecnologias
+ *
+ * Aplicar a faixa 046-090 a todos os anos importaria Física, Química e Biologia
+ * rotuladas como Ciências Humanas em sete das nove edições históricas. A
+ * distinção foi verificada lendo o conteúdo das questões de cada faixa em cada
+ * ano, não deduzida de documentação.
  */
 
 export const AREA_SLUGS = ['linguagens', 'humanas', 'natureza', 'matematica'] as const;
@@ -28,20 +40,51 @@ export const AREA_LABELS: Record<AreaSlug, string> = {
 /** Área em que a plataforma atua, conforme o escopo definido no artigo. */
 export const AREA_ALVO: AreaSlug = 'humanas';
 
-/** Primeira e última questão de cada área no caderno oficial. */
-const FAIXAS: ReadonlyArray<{ ate: number; slug: AreaSlug }> = [
+/** Ordem das áreas no caderno, do layout usado em 2017 em diante. */
+const FAIXAS_MODERNAS: ReadonlyArray<{ ate: number; slug: AreaSlug }> = [
   { ate: 45, slug: 'linguagens' },
   { ate: 90, slug: 'humanas' },
   { ate: 135, slug: 'natureza' },
   { ate: 180, slug: 'matematica' },
 ];
 
+/** Ordem das áreas no caderno entre 2010 e 2016. */
+const FAIXAS_2010_2016: ReadonlyArray<{ ate: number; slug: AreaSlug }> = [
+  { ate: 45, slug: 'humanas' },
+  { ate: 90, slug: 'natureza' },
+  { ate: 135, slug: 'linguagens' },
+  { ate: 180, slug: 'matematica' },
+];
+
 export const QUESTOES_POR_EDICAO = 180;
 
-/** Alternativas do ENEM, na ordem em que aparecem no array `alternatives`. */
+/**
+ * Alternativas possíveis, na ordem em que aparecem no array `alternatives`.
+ *
+ * O ENEM e a Fuvest usam cinco; a Unicamp usa quatro. A lista é o teto, e cada
+ * questão declara quantas de fato tem.
+ */
 export const ALTERNATIVAS = ['A', 'B', 'C', 'D', 'E'] as const;
 
+/** Menor quantidade de alternativas aceita (Unicamp). */
+export const MIN_ALTERNATIVAS = 4;
+
 export type Alternativa = (typeof ALTERNATIVAS)[number];
+
+/** Banca de origem da questão. */
+export const FONTES = ['enem', 'fuvest', 'unicamp'] as const;
+
+export type Fonte = (typeof FONTES)[number];
+
+export const FONTE_LABELS: Record<Fonte, string> = {
+  enem: 'ENEM',
+  fuvest: 'Fuvest — USP',
+  unicamp: 'Unicamp',
+};
+
+export function isFonte(valor: unknown): valor is Fonte {
+  return typeof valor === 'string' && (FONTES as readonly string[]).includes(valor);
+}
 
 export function isAlternativa(valor: unknown): valor is Alternativa {
   return typeof valor === 'string' && (ALTERNATIVAS as readonly string[]).includes(valor);
@@ -65,9 +108,14 @@ export function numeroDaQuestao(id: string): number | null {
   return numero;
 }
 
-/** Área do conhecimento correspondente à posição da questão no caderno. */
-export function areaDaQuestao(numero: number): AreaSlug | null {
-  return FAIXAS.find((faixa) => numero <= faixa.ate)?.slug ?? null;
+/**
+ * Área do conhecimento correspondente à posição da questão no caderno daquele
+ * ano. O ano importa: entre 2010 e 2016 as áreas ocupavam outras faixas.
+ */
+export function areaDaQuestao(numero: number, ano: number): AreaSlug | null {
+  const faixas = ano >= 2010 && ano <= 2016 ? FAIXAS_2010_2016 : FAIXAS_MODERNAS;
+
+  return faixas.find((faixa) => numero <= faixa.ate)?.slug ?? null;
 }
 
 /**
@@ -83,11 +131,19 @@ export function chaveDaQuestao(exam: string, numero: number): string {
 export type QuestaoCurada = {
   questionKey: string;
   id: string;
+  /** Banca de origem: ENEM, Fuvest ou Unicamp. */
+  fonte: Fonte;
+  fonteLabel: string;
   exam: string;
   year: number;
   questionNumber: number;
   area: AreaSlug;
   areaLabel: string;
+  /**
+   * Disciplinas anotadas na fonte (`História`, `Geografia`...). Vem vazio para
+   * o ENEM, cujos datasets não trazem essa anotação — só a área.
+   */
+  disciplinas: string[];
   question: string;
   alternatives: string[];
   label: Alternativa;
@@ -105,6 +161,18 @@ export type QuestaoCurada = {
  * DevTools antes de o aluno responder.
  */
 export type QuestaoPublica = Omit<QuestaoCurada, 'label' | 'sourceFile' | 'importedAt'>;
+
+/**
+ * Procedência da questão, como aparece na interface e no prompt do tutor:
+ * `"ENEM 2023"`, `"Fuvest — USP 2020"`, `"Unicamp 2021"`.
+ *
+ * O `fonteLabel` é opcional porque documentos gravados antes da entrada de
+ * Fuvest e Unicamp não têm o campo. Enquanto a base não é ressincronizada, eles
+ * são o que sempre foram: questões do ENEM.
+ */
+export function rotuloDaFonte(questao: { fonteLabel?: string; exam: string }): string {
+  return `${questao.fonteLabel || FONTE_LABELS.enem} ${questao.exam}`;
+}
 
 /** Formato bruto de uma linha do JSONL do ENEM-Benchmark. */
 type LinhaBruta = {
@@ -140,7 +208,8 @@ export function curarQuestao(
   const questionNumber = numeroDaQuestao(id);
   if (questionNumber === null) return { ok: false, motivo: `id fora do formato esperado: "${id}"` };
 
-  const area = areaDaQuestao(questionNumber);
+  const year = Number.parseInt(exam, 10);
+  const area = areaDaQuestao(questionNumber, year);
   if (area === null) return { ok: false, motivo: `questão ${questionNumber} fora do caderno` };
   if (area !== areaAlvo) return { ok: false, motivo: 'fora da área de Ciências Humanas' };
 
@@ -148,12 +217,8 @@ export function curarQuestao(
     ? bruta.alternatives.filter((alt): alt is string => typeof alt === 'string')
     : [];
 
-  if (alternatives.length !== ALTERNATIVAS.length) {
-    return { ok: false, motivo: `esperava ${ALTERNATIVAS.length} alternativas, veio ${alternatives.length}` };
-  }
-
-  const label = bruta.label;
-  if (!isAlternativa(label)) return { ok: false, motivo: `gabarito inválido: "${label}"` };
+  const alternativasValidas = validarAlternativas(alternatives, bruta.label);
+  if (!alternativasValidas.ok) return alternativasValidas;
 
   const question = typeof bruta.question === 'string' ? bruta.question.trim() : '';
   if (!question) return { ok: false, motivo: 'enunciado vazio' };
@@ -165,25 +230,144 @@ export function curarQuestao(
     ? bruta.description.filter((d): d is string => typeof d === 'string')
     : [];
 
-  const year = Number.parseInt(exam, 10);
-
   return {
     ok: true,
     questao: {
       questionKey: chaveDaQuestao(exam, questionNumber),
       id,
+      fonte: 'enem',
+      fonteLabel: FONTE_LABELS.enem,
       exam,
       year: Number.isInteger(year) ? year : 0,
       questionNumber,
       area,
       areaLabel: AREA_LABELS[area],
+      disciplinas: [],
       question,
       alternatives,
-      label,
+      label: alternativasValidas.label,
       figures,
       description,
       hasFigure: figures.length > 0 || description.length > 0,
       ledor: bruta.ledor === true,
+      sourceFile,
+      importedAt: new Date(),
+    },
+  };
+}
+
+/**
+ * Valida a lista de alternativas e o gabarito de qualquer fonte.
+ *
+ * Aceita 4 (Unicamp) ou 5 (ENEM e Fuvest) e exige que o gabarito aponte para
+ * uma alternativa que exista: um "E" numa questão de quatro alternativas é
+ * dado corrompido, e deixá-lo passar produziria uma questão sem resposta certa.
+ */
+export function validarAlternativas(
+  alternatives: string[],
+  gabaritoBruto: unknown,
+): { ok: true; label: Alternativa } | { ok: false; motivo: string } {
+  if (alternatives.length < MIN_ALTERNATIVAS || alternatives.length > ALTERNATIVAS.length) {
+    return {
+      ok: false,
+      motivo: `esperava de ${MIN_ALTERNATIVAS} a ${ALTERNATIVAS.length} alternativas, veio ${alternatives.length}`,
+    };
+  }
+
+  const label = typeof gabaritoBruto === 'string' ? gabaritoBruto.trim().toUpperCase() : '';
+  if (!isAlternativa(label)) return { ok: false, motivo: `gabarito inválido: "${gabaritoBruto}"` };
+
+  const indice = ALTERNATIVAS.indexOf(label);
+  if (indice >= alternatives.length) {
+    return {
+      ok: false,
+      motivo: `gabarito "${label}" fora das ${alternatives.length} alternativas existentes`,
+    };
+  }
+
+  return { ok: true, label };
+}
+
+// ---------------------------------------------------------------------------
+// ENEM Challenge (edições de 2009 a 2017)
+// ---------------------------------------------------------------------------
+
+/** Formato bruto de uma linha do dataset ENEM Challenge. */
+type LinhaChallenge = {
+  id?: string;
+  /** Identifica a aplicação: `"2016"` e `"2016_2"` são provas diferentes. */
+  exam_id?: string;
+  exam_year?: string;
+  question_number?: number;
+  nullified?: boolean;
+  question?: string;
+  choices?: { text?: unknown } | unknown;
+  answerKey?: string;
+};
+
+/**
+ * Cura uma questão do ENEM Challenge, que cobre as edições anteriores às do
+ * ENEM-Benchmark. Mesmo exame, esquema diferente: o gabarito vem em
+ * `answerKey`, as alternativas em `choices.text`, e há uma marcação de questões
+ * anuladas pelo INEP — que não têm resposta certa e por isso são descartadas.
+ */
+export function curarQuestaoChallenge(
+  bruta: LinhaChallenge,
+  sourceFile: string,
+  areaAlvo: AreaSlug = AREA_ALVO,
+): ResultadoCuradoria {
+  const id = typeof bruta.id === 'string' ? bruta.id : '';
+  const exam = typeof bruta.exam_year === 'string' ? bruta.exam_year : '';
+  const questionNumber = typeof bruta.question_number === 'number' ? bruta.question_number : null;
+
+  // A chave usa `exam_id`, não `exam_year`: 2016 teve duas aplicações
+  // (`"2016"` e `"2016_2"`, a reaplicação) que reiniciam a numeração das
+  // questões. Chavear pelo ano faria a reaplicação sobrescrever 31 questões da
+  // prova regular — o mesmo defeito que a chave composta já corrigiu uma vez.
+  const aplicacao = typeof bruta.exam_id === 'string' && bruta.exam_id ? bruta.exam_id : exam;
+
+  if (!id || !exam) return { ok: false, motivo: 'registro sem "id" ou "exam_year"' };
+  if (questionNumber === null) return { ok: false, motivo: 'registro sem "question_number"' };
+  if (bruta.nullified === true) return { ok: false, motivo: 'questão anulada pelo INEP' };
+
+  const year = Number.parseInt(exam, 10);
+  const area = areaDaQuestao(questionNumber, year);
+  if (area === null) return { ok: false, motivo: `questão ${questionNumber} fora do caderno` };
+  if (area !== areaAlvo) return { ok: false, motivo: 'fora da área de Ciências Humanas' };
+
+  const bruteChoices = (bruta.choices ?? {}) as { text?: unknown };
+  const alternatives = Array.isArray(bruteChoices.text)
+    ? bruteChoices.text.filter((alt): alt is string => typeof alt === 'string').map((t) => t.trim())
+    : [];
+
+  const alternativasValidas = validarAlternativas(alternatives, bruta.answerKey);
+  if (!alternativasValidas.ok) return alternativasValidas;
+
+  const question = typeof bruta.question === 'string' ? bruta.question.trim() : '';
+  if (!question) return { ok: false, motivo: 'enunciado vazio' };
+
+  return {
+    ok: true,
+    questao: {
+      questionKey: chaveDaQuestao(aplicacao, questionNumber),
+      id,
+      fonte: 'enem',
+      fonteLabel: FONTE_LABELS.enem,
+      // `exam` guarda o ano, e não a aplicação, para que o filtro por edição e
+      // o agrupamento do painel continuem funcionando com quatro dígitos.
+      exam,
+      year: Number.isInteger(year) ? year : 0,
+      questionNumber,
+      area,
+      areaLabel: AREA_LABELS[area],
+      disciplinas: [],
+      question,
+      alternatives,
+      label: alternativasValidas.label,
+      figures: [],
+      description: [],
+      hasFigure: false,
+      ledor: false,
       sourceFile,
       importedAt: new Date(),
     },

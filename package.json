@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "avaliacao": "tsx --env-file=.env.local --conditions=react-server scripts/avaliacao-etapa5.mts"
+    "avaliacao": "tsx --env-file=.env.local --conditions=react-server scripts/avaliacao-etapa5.mts",
+    "datasets": "tsx scripts/baixar-datasets.mts"
   },
   "dependencies": {
     "groq-sdk": "^1.1.2",

@@ -20,7 +20,10 @@ export default function BotaoSincronizar() {
 
       if (corpo.success) {
         setEstado('concluido');
-        setMensagem(`${corpo.totalProcessed} questões sincronizadas.`);
+        // `totalNoBanco`, e não `totalProcessed`: as edições de 2022 e 2023
+        // aparecem em duas fontes do ENEM e ocupam um único documento, então a
+        // soma das importações é maior que o banco resultante.
+        setMensagem(`${corpo.totalNoBanco} questões no banco.`);
         // Atualiza os contadores do painel, que são renderizados no servidor.
         router.refresh();
       } else {
@@ -40,8 +43,8 @@ export default function BotaoSincronizar() {
           Sincronizar banco de questões
         </h2>
         <p className="text-xs text-slate-500 leading-relaxed">
-          Importa as questões de Ciências Humanas dos cadernos de 2022 a 2024 do dataset
-          ENEM-Benchmark para o MongoDB. Pode ser executado novamente sem duplicar registros.
+          Importa as questões de Ciências Humanas do ENEM (2009 a 2024), da Fuvest e da Unicamp
+          (2018 a 2025) para o MongoDB. Pode ser executado novamente sem duplicar registros.
         </p>
       </div>
 

@@ -20,13 +20,39 @@ do trabalho e para deixar registrado o que mudou depois da entrega à banca.
 
 > "O foco foi estrito em itens da área de Ciências Humanas."
 
-O dataset ENEM-Benchmark não tem campo de área, mas a posição da questão no caderno é fixa. A
-função `areaDaQuestao` em [`lib/enem.ts`](../lib/enem.ts) deriva a área do número da questão, e a
-sincronização importa apenas a faixa 046–090: **45 questões por edição, 135 no ciclo 2022–2024**.
+O dataset ENEM-Benchmark não tem campo de área, mas a posição da questão no caderno é fixa dentro
+de uma mesma década. A função `areaDaQuestao` em [`lib/enem.ts`](../lib/enem.ts) deriva a área do
+número da questão, e a sincronização importa apenas a faixa de Humanas: **45 questões por edição,
+135 no ciclo 2022–2024** — que é o corpus descrito no artigo e o que foi avaliado na Etapa 5.
 
 A chave de upsert é `questionKey` (`"2023-052"`). Isso importa porque os três arquivos JSONL
 numeram suas questões de `questao_01` a `questao_180` — uma chave baseada apenas no campo `id` do
 dataset faz cada edição sobrescrever a anterior, deixando só 180 documentos no banco.
+
+#### Ampliação da base após a entrega
+
+> "recomenda-se realizar uma avaliação empírica com estudantes" e "testes sistemáticos com maior
+> quantidade de questões" — Conclusão
+
+A base foi ampliada de 135 para **903 questões de Ciências Humanas**, todas oficiais e com gabarito
+oficial, somando o [ENEM Challenge](https://huggingface.co/datasets/eduagarcia/enem_challenge)
+(ENEM 2009–2017, 381 questões) e o [BLUEX](https://github.com/portuguese-benchmark-datasets/BLUEX)
+(Fuvest/USP e Unicamp 2018–2025, 387 questões) ao ENEM-Benchmark.
+
+O que dizer na defesa, se perguntarem: **o artigo descreve o ENEM-Benchmark, e ele continua sendo a
+fonte do que foi avaliado.** As outras duas não substituem nada — atendem ao trabalho futuro que a
+própria conclusão pede. O BLUEX extrapola o escopo "ENEM" do título; foi uma decisão consciente de
+ampliar a plataforma além do que o artigo relata.
+
+Dois cuidados de curadoria que a ampliação exigiu, ambos verificados contra os dados e não
+deduzidos de documentação:
+
+1. **A faixa de Humanas mudou em 2017.** Em 2010–2016 ela era 001–045, não 046–090. Importar sem
+   verificar teria trazido Física, Química e Biologia rotuladas como Ciências Humanas em sete das
+   nove edições históricas.
+2. **2016 teve duas aplicações** (regular e reaplicação), que reiniciam a numeração das questões.
+   A chave do ENEM passou a usar `exam_id` em vez do ano; sem isso a reaplicação sobrescrevia 31
+   questões da prova regular — o mesmo defeito nº 1 desta lista, em roupa nova.
 
 ### Etapa 3 — Desenvolvimento da plataforma
 

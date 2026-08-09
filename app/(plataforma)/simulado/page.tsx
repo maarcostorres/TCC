@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import Alternativas from '@/components/Alternativas';
 import Enunciado from '@/components/Enunciado';
 import RevisaoSimulado from '@/components/RevisaoSimulado';
-import { type Alternativa, type QuestaoPublica } from '@/lib/enem';
+import { rotuloDaFonte, type Alternativa, type QuestaoPublica } from '@/lib/enem';
 
 export type Correcao = {
   questionKey: string;
@@ -185,7 +185,8 @@ export default function SimuladoPage() {
       <div className="flex flex-wrap justify-between items-center gap-4 mb-8 border-b border-[#27272a] pb-6">
         <div>
           <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-widest">
-            ENEM {questao.exam} · Ciências Humanas
+            {rotuloDaFonte(questao)}
+            {questao.disciplinas?.length ? ` · ${questao.disciplinas.join(', ')}` : ' · Ciências Humanas'}
           </p>
           <h1 className="text-sm font-semibold text-white mt-1">
             Questão {indice + 1} de {questoes.length} · {respondidas} respondida

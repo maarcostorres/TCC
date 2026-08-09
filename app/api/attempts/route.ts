@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { randomUUID } from 'node:crypto';
 import { attemptsCollection, questionsCollection, type Tentativa } from '@/lib/db';
-import { isAlternativa, type Alternativa } from '@/lib/enem';
+import { FONTE_LABELS, isAlternativa, type Alternativa } from '@/lib/enem';
 import { getSessao } from '@/lib/session';
 
 type RespostaEnviada = { questionKey: string; resposta: Alternativa };
@@ -61,7 +61,16 @@ export async function POST(request: Request) {
     const gabaritos = await questions
       .find(
         { questionKey: { $in: respostas.map((r) => r.questionKey) } },
-        { projection: { questionKey: 1, label: 1, exam: 1, questionNumber: 1, area: 1 } },
+        {
+          projection: {
+            questionKey: 1,
+            label: 1,
+            exam: 1,
+            fonteLabel: 1,
+            questionNumber: 1,
+            area: 1,
+          },
+        },
       )
       .toArray();
 
@@ -81,6 +90,7 @@ export async function POST(request: Request) {
         userId: sessao.sub,
         questionKey,
         exam: questao.exam,
+        fonteLabel: questao.fonteLabel || FONTE_LABELS.enem,
         questionNumber: questao.questionNumber,
         area: questao.area,
         origem,

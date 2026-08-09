@@ -2,28 +2,58 @@ import { NextResponse } from 'next/server';
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import { questionsCollection } from '@/lib/db';
-import { AREA_LABELS, AREA_ALVO, curarQuestao, type QuestaoCurada } from '@/lib/enem';
+import {
+  AREA_LABELS,
+  AREA_ALVO,
+  curarQuestao,
+  curarQuestaoChallenge,
+  type QuestaoCurada,
+  type ResultadoCuradoria,
+} from '@/lib/enem';
+import { curarQuestaoBluex } from '@/lib/bluex';
 import { getSessao } from '@/lib/session';
 
-const ARQUIVOS = ['2022.jsonl', '2023.jsonl', '2024.jsonl'];
+type Curador = (bruta: never, sourceFile: string) => ResultadoCuradoria;
 
-type ResumoEdicao = {
+/**
+ * Arquivos importados, na ordem em que são processados.
+ *
+ * A ordem importa para o ENEM: o ENEM Challenge também contém 2022 e 2023, que
+ * o ENEM-Benchmark já cobre. Como as duas fontes geram a mesma `questionKey`
+ * (`"2023-052"`), o Challenge é processado antes e o ENEM-Benchmark — a fonte
+ * citada no artigo — grava por último e prevalece nessas edições.
+ */
+const ARQUIVOS: ReadonlyArray<{ arquivo: string; curar: Curador; rotulo: string }> = [
+  {
+    arquivo: 'enem-challenge.jsonl',
+    curar: curarQuestaoChallenge as Curador,
+    rotulo: 'ENEM 2009-2017',
+  },
+  { arquivo: 'bluex.jsonl', curar: curarQuestaoBluex as Curador, rotulo: 'Fuvest e Unicamp' },
+  { arquivo: '2022.jsonl', curar: curarQuestao as Curador, rotulo: 'ENEM 2022' },
+  { arquivo: '2023.jsonl', curar: curarQuestao as Curador, rotulo: 'ENEM 2023' },
+  { arquivo: '2024.jsonl', curar: curarQuestao as Curador, rotulo: 'ENEM 2024' },
+];
+
+type ResumoArquivo = {
   arquivo: string;
+  rotulo: string;
   linhas: number;
   importadas: number;
   descartadas: number;
 };
 
+export const maxDuration = 60;
+
 /**
- * Carrega o dataset ENEM-Benchmark no MongoDB, mantendo apenas as questões de
- * Ciências Humanas (posições 046-090 de cada caderno).
+ * Carrega os datasets de questões no MongoDB, mantendo apenas Ciências Humanas.
  *
- * O upsert usa `questionKey` (`"2023-046"`) e não o campo `id` do dataset: os
- * três arquivos numeram suas questões de `questao_01` a `questao_180`, então
- * uma chave baseada só em `id` faria cada edição sobrescrever a anterior.
+ * O upsert usa `questionKey` e não o campo `id` do dataset: dentro de uma mesma
+ * fonte os ids se repetem entre edições, então uma chave baseada só em `id`
+ * faria cada edição sobrescrever a anterior.
  */
 export async function POST() {
-  // Reimportar as três edições é caro, e a rota fica exposta na internet
+  // Reimportar todas as fontes é caro, e a rota fica exposta na internet
   // depois do deploy. O `proxy.ts` sozinho não basta: ele responde com um
   // redirecionamento, que não é resposta adequada a um POST.
   const sessao = await getSessao();
@@ -41,11 +71,11 @@ export async function POST() {
     // vários compartilhavam a chave nula.
     const legado = await collection.deleteMany({ questionKey: { $exists: false } });
 
-    const resumo: ResumoEdicao[] = [];
+    const resumo: ResumoArquivo[] = [];
     const motivosDescarte = new Map<string, number>();
     let totalProcessed = 0;
 
-    for (const arquivo of ARQUIVOS) {
+    for (const { arquivo, curar, rotulo } of ARQUIVOS) {
       const caminho = path.join(dataDir, arquivo);
 
       let conteudo: string;
@@ -58,7 +88,7 @@ export async function POST() {
         // dataset não chegou ao pacote da função.
         const motivo = `${arquivo} não pôde ser lido: ${erro instanceof Error ? erro.message : String(erro)}`;
         motivosDescarte.set(motivo, (motivosDescarte.get(motivo) ?? 0) + 1);
-        resumo.push({ arquivo, linhas: 0, importadas: 0, descartadas: 0 });
+        resumo.push({ arquivo, rotulo, linhas: 0, importadas: 0, descartadas: 0 });
         continue;
       }
 
@@ -74,7 +104,7 @@ export async function POST() {
           continue;
         }
 
-        const resultado = curarQuestao(bruta as Record<string, unknown>, arquivo);
+        const resultado = curar(bruta as never, arquivo);
         if (resultado.ok) {
           questoes.push(resultado.questao);
         } else {
@@ -83,8 +113,8 @@ export async function POST() {
       }
 
       if (questoes.length > 0) {
-        // bulkWrite substitui os 540 updateOne sequenciais do seed anterior:
-        // uma ida ao cluster por edição em vez de uma por questão.
+        // bulkWrite substitui os updateOne sequenciais do seed anterior: uma
+        // ida ao cluster por arquivo em vez de uma por questão.
         await collection.bulkWrite(
           questoes.map((questao) => ({
             updateOne: {
@@ -99,6 +129,7 @@ export async function POST() {
 
       resumo.push({
         arquivo,
+        rotulo,
         linhas: linhas.length,
         importadas: questoes.length,
         descartadas: linhas.length - questoes.length,
@@ -113,14 +144,25 @@ export async function POST() {
 
     const totalNoBanco = await collection.countDocuments({ area: AREA_ALVO });
 
+    // O total no banco é menor que a soma das importações porque as edições de
+    // 2022 e 2023 aparecem nas duas fontes do ENEM e ocupam o mesmo documento.
+    const porFonte = await collection
+      .aggregate<{ _id: string; total: number }>([
+        { $match: { area: AREA_ALVO } },
+        { $group: { _id: '$fonteLabel', total: { $sum: 1 } } },
+        { $sort: { _id: 1 } },
+      ])
+      .toArray();
+
     return NextResponse.json({
       success: true,
       totalProcessed,
       totalNoBanco,
       registrosLegadosRemovidos: legado.deletedCount,
       area: AREA_LABELS[AREA_ALVO],
-      message: `${totalProcessed} questões de Ciências Humanas sincronizadas.`,
-      porEdicao: resumo,
+      message: `${totalNoBanco} questões de Ciências Humanas no banco.`,
+      porFonte: Object.fromEntries(porFonte.map(({ _id, total }) => [_id ?? 'sem fonte', total])),
+      porArquivo: resumo,
       descartes: Object.fromEntries(motivosDescarte),
     });
   } catch (erro) {

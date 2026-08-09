@@ -1,6 +1,6 @@
 import 'server-only';
 import Groq from 'groq-sdk';
-import { limparEnunciado, type Alternativa } from '@/lib/enem';
+import { ALTERNATIVAS, limparEnunciado, rotuloDaFonte, type Alternativa } from '@/lib/enem';
 
 /** Modelo usado em todo o sistema (Llama 3.3 70B, servido pela Groq). */
 export const MODELO = 'llama-3.3-70b-versatile';
@@ -140,10 +140,13 @@ export type ContextoFeedback = {
   label: Alternativa;
   exam: string;
   questionNumber: number;
+  /** Banca de origem. Ausente em documentos anteriores à entrada de Fuvest e Unicamp. */
+  fonteLabel?: string;
+  disciplinas?: string[];
 };
 
 const SISTEMA_FEEDBACK = [
-  'Você é um professor de Ciências Humanas corrigindo uma questão do ENEM com um estudante.',
+  'Você é um professor de Ciências Humanas corrigindo com um estudante uma questão de vestibular.',
   'Escreva em português do Brasil, no máximo três parágrafos curtos, sem listas e sem títulos.',
   'Trate o gabarito oficial como correto: sua tarefa é explicá-lo, nunca contestá-lo.',
   'Não repita o enunciado; vá direto ao raciocínio.',
@@ -151,9 +154,11 @@ const SISTEMA_FEEDBACK = [
 ].join(' ');
 
 function montarPrompt(questao: ContextoFeedback, respostaDoAluno: Alternativa): string {
-  const letras = ['A', 'B', 'C', 'D', 'E'];
+  // As letras saem da posição no array: a Unicamp usa quatro alternativas, e
+  // uma lista fixa de cinco faria o prompt anunciar uma alternativa E que não
+  // existe na prova.
   const alternativas = questao.alternatives
-    .map((texto, indice) => `${letras[indice]}) ${texto}`)
+    .map((texto, indice) => `${ALTERNATIVAS[indice]}) ${texto}`)
     .join('\n');
 
   const acertou = respostaDoAluno === questao.label;
@@ -162,8 +167,12 @@ function montarPrompt(questao: ContextoFeedback, respostaDoAluno: Alternativa): 
     ? 'O estudante ACERTOU. Confirme por que a alternativa está correta e acrescente um contexto histórico, geográfico, filosófico ou sociológico que aprofunde o tema.'
     : `O estudante ERROU. Explique por que a alternativa ${respostaDoAluno} é um distrator — qual raciocínio equivocado leva a ela — e em seguida por que a alternativa ${questao.label} é a correta.`;
 
+  const disciplinas = questao.disciplinas?.length
+    ? questao.disciplinas.join(', ')
+    : 'Ciências Humanas';
+
   return [
-    `Questão ${questao.questionNumber} do ENEM ${questao.exam}, área de Ciências Humanas.`,
+    `Questão ${questao.questionNumber} — ${rotuloDaFonte(questao)}, área de ${disciplinas}.`,
     '',
     'ENUNCIADO:',
     limparEnunciado(questao.question),

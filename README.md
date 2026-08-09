@@ -62,26 +62,61 @@ Atlas, liberação de rede, as três variáveis de ambiente e a verificação de
 
 ## O banco de questões
 
-As questões vêm do dataset [ENEM-Benchmark](https://huggingface.co/datasets/maritaca-ai/enem), da
-Maritaca AI, nos arquivos `data/2022.jsonl`, `data/2023.jsonl` e `data/2024.jsonl` — 180 questões
-por edição, na ordem oficial do caderno.
+Todas as questões são oficiais, com o gabarito oficial da banca. São **903 questões de Ciências
+Humanas**, de três datasets abertos:
 
-O dataset não traz a área do conhecimento de cada questão, mas a posição no caderno é fixa:
+| Fonte | Provas | Questões | Arquivo |
+| --- | --- | --- | --- |
+| [ENEM-Benchmark](https://huggingface.co/datasets/maritaca-ai/enem) (Maritaca AI) | ENEM 2022–2024 | 135 | `data/2022.jsonl`, `2023.jsonl`, `2024.jsonl` |
+| [ENEM Challenge](https://huggingface.co/datasets/eduagarcia/enem_challenge) | ENEM 2009–2017 | 381 | `data/enem-challenge.jsonl` |
+| [BLUEX](https://github.com/portuguese-benchmark-datasets/BLUEX) | Fuvest/USP e Unicamp 2018–2025 | 387 | `data/bluex.jsonl` |
 
-| Posição | Área |
+O ENEM-Benchmark é a fonte descrita no artigo e continua sendo a autoridade sobre as edições de
+2022 a 2024, que também aparecem no ENEM Challenge. As demais ampliam a base — o que a própria
+conclusão do artigo aponta como necessário.
+
+Os arquivos estão versionados, mas podem ser rebaixados a qualquer momento:
+
+```bash
+npm run datasets
+```
+
+### Como a área é determinada
+
+O BLUEX anota a disciplina de cada questão, então é filtrado por `history`, `geography`,
+`philosophy` e `sociology`. Os datasets do ENEM não anotam nada disso: a área vem da posição da
+questão no caderno — **e essa posição mudou em 2017**:
+
+| Edições | Ciências Humanas está em |
 | --- | --- |
-| 001–045 | Linguagens, Códigos e suas Tecnologias |
-| **046–090** | **Ciências Humanas e suas Tecnologias** |
-| 091–135 | Ciências da Natureza e suas Tecnologias |
-| 136–180 | Matemática e suas Tecnologias |
+| 2009 | 046–090 |
+| **2010–2016** | **001–045** |
+| 2017 em diante | 046–090 |
 
-A sincronização (`POST /api/questions/seed`) importa apenas a faixa 046–090, o que dá **45 questões
-por edição — 135 no ciclo 2022–2024**. As outras 405 são descartadas, e o resumo da resposta informa
-quantas e por quê.
+Aplicar 046–090 a todos os anos importaria Física, Química e Biologia rotuladas como Ciências
+Humanas em sete das nove edições históricas. A tabela acima foi verificada lendo o conteúdo das
+questões de cada faixa em cada ano.
 
-Cada questão é gravada com a chave `questionKey` no formato `"2023-052"`. O campo `id` do dataset
-não serve como chave: os três arquivos numeram suas questões de `questao_01` a `questao_180`, de
-modo que uma chave baseada só nele faria cada edição sobrescrever a anterior.
+### Chaves e colisões
+
+Cada questão é gravada com uma `questionKey`: `"2023-052"` para o ENEM, `"fuvest-2020-056"` e
+`"unicamp-2021-059-day2"` para o BLUEX. O campo `id` do dataset não serve como chave — dentro de
+cada fonte ele se repete entre edições.
+
+Duas colisões concretas que a chave precisa evitar:
+
+- os arquivos do ENEM-Benchmark numeram suas questões de `questao_01` a `questao_180`, então uma
+  chave baseada só em `id` faria cada edição sobrescrever a anterior;
+- **2016 teve duas aplicações** (a regular e a reaplicação), que reiniciam a numeração. Por isso a
+  chave do ENEM usa `exam_id` (`"2016"` e `"2016_2"`), não o ano — sem isso, 31 questões da prova
+  regular desapareceriam.
+
+### Alternativas
+
+O ENEM e a Fuvest usam cinco alternativas; a **Unicamp usa quatro**. A validação aceita as duas
+contagens e recusa gabarito que aponte para alternativa inexistente. Questões cujas *alternativas*
+são imagens, e questões com imagem sem legenda textual, são descartadas: não teriam resposta
+possível na plataforma.
 
 O gabarito nunca é enviado ao navegador junto do enunciado: `GET /api/questions` o omite, e a
 correção acontece no servidor, em `POST /api/attempts`.

@@ -8,10 +8,11 @@ type Props = {
 /**
  * Enunciado da questão.
  *
- * O dataset ENEM-Benchmark não distribui as imagens dos cadernos: no lugar
- * delas o enunciado traz `[[placeholder]]` e um campo `description` com a
- * descrição textual usada nas provas adaptadas para ledor. Exibir essa
- * descrição é o que mantém as questões com imagem respondíveis.
+ * Nenhuma das fontes distribui as imagens dos cadernos. No lugar delas vem uma
+ * descrição textual: no ENEM-Benchmark, a das provas adaptadas para ledor
+ * (`description`, com `[[placeholder]]` no enunciado); no BLUEX, as legendas
+ * automáticas. Exibi-la é o que mantém as questões com imagem respondíveis —
+ * questões com imagem e sem legenda são descartadas na importação.
  */
 export default function Enunciado({ questao, compacto = false }: Props) {
   const texto = limparEnunciado(questao.question);

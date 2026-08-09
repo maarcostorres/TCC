@@ -19,6 +19,12 @@ export type Tentativa = {
   userId: string;
   questionKey: string;
   exam: string;
+  /**
+   * Banca da questão. Gravada junto porque o ano sozinho deixou de identificar
+   * a prova quando Fuvest e Unicamp entraram: "2023" pode ser três exames
+   * diferentes, e o painel agruparia os três na mesma linha.
+   */
+  fonteLabel: string;
   questionNumber: number;
   area: string;
   /** 'estudo' = questão avulsa; 'simulado' = item dentro de uma mini prova. */

@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import Enunciado from '@/components/Enunciado';
-import { ALTERNATIVAS, type Alternativa, type QuestaoPublica } from '@/lib/enem';
+import { ALTERNATIVAS, rotuloDaFonte, type Alternativa, type QuestaoPublica } from '@/lib/enem';
 import type { Correcao } from '@/app/(plataforma)/simulado/page';
 
 type Props = {
@@ -105,7 +105,7 @@ export default function RevisaoSimulado({
             <details key={questao.questionKey} className="card-solid overflow-hidden">
               <summary className="p-5 cursor-pointer flex flex-wrap items-center gap-3 justify-between text-sm">
                 <span className="text-slate-200 font-medium">
-                  Questão {posicao + 1} · ENEM {questao.exam}
+                  Questão {posicao + 1} · {rotuloDaFonte(questao)}
                 </span>
 
                 <span

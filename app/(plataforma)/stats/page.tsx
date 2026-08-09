@@ -137,7 +137,7 @@ export default function DesempenhoPage() {
             <thead>
               <tr className="text-left text-xs uppercase tracking-widest text-slate-500">
                 <th scope="col" className="pb-3 font-semibold">
-                  Edição
+                  Prova
                 </th>
                 <th scope="col" className="pb-3 font-semibold text-right">
                   Respondidas
@@ -149,9 +149,9 @@ export default function DesempenhoPage() {
             </thead>
             <tbody className="text-slate-300">
               {dados.porEdicao.map((linha) => (
-                <tr key={linha.exam} className="border-t border-[#27272a]">
+                <tr key={linha.prova} className="border-t border-[#27272a]">
                   <th scope="row" className="py-3 font-medium text-left">
-                    ENEM {linha.exam}
+                    {linha.prova}
                   </th>
                   <td className="py-3 text-right tabular-nums">{linha.total}</td>
                   <td className="py-3 text-right tabular-nums font-semibold text-white">
