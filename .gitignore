@@ -39,3 +39,7 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+resultados-avaliacao/
+
+# configuração local de ferramenta, específica de cada máquina
+.claude/
