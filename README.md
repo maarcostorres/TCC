@@ -26,34 +26,45 @@ e Marcos Vinicius Silva Torres.
 - Uma chave da [API Groq](https://console.groq.com) — opcional: sem ela a plataforma roda em modo
   demonstração, com feedback fixo no lugar da resposta do modelo
 
-## Instalação
+## 🚀 Como Instalar e Rodar Localmente
 
+Siga o passo a passo abaixo para rodar o projeto na sua máquina:
+
+### 1. Instalar as dependências
+Abra o terminal na pasta do projeto e rode:
 ```bash
 npm install
 ```
 
-Copie `.env.example` para `.env.local` e preencha as três variáveis:
+### 2. Baixar o Banco de Questões (Opcional)
+Os arquivos de questões já vêm na pasta `data/`, mas se quiser garantir a versão mais recente direto das APIs públicas, rode:
+```bash
+npm run datasets
+```
 
+### 3. Configurar as Variáveis de Ambiente
+Copie o arquivo de exemplo para criar o seu arquivo local de chaves:
 ```bash
 cp .env.example .env.local
 ```
+Abra o arquivo `.env.local` e preencha as três variáveis:
+- `MONGODB_URI` — sua string de conexão do MongoDB (Atlas ou local).
+- `GROQ_API_KEY` — sua chave da [API Groq](https://console.groq.com) (começa com `gsk_`).
+- `SESSION_SECRET` — um segredo para assinar a sessão. Você pode gerar um seguro rodando isto no terminal:
+  ```bash
+  node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
+  ```
 
-- `MONGODB_URI` — string de conexão do cluster
-- `GROQ_API_KEY` — chave da Groq (começa com `gsk_`)
-- `SESSION_SECRET` — segredo para assinar a sessão. Gere um com:
-
-```bash
-node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
-```
-
-Suba o servidor de desenvolvimento:
-
+### 4. Rodar o Servidor
+Com tudo configurado, inicie o servidor de desenvolvimento:
 ```bash
 npm run dev
 ```
 
-Crie uma conta em <http://localhost:3000/cadastro>, entre e clique em **Sincronizar agora** na tela
-inicial para carregar as questões no MongoDB.
+### 5. Configuração Inicial (Sincronização)
+1. Acesse **<http://localhost:3000/cadastro>** no seu navegador e crie uma conta de usuário.
+2. Após o login, clique no botão **"Sincronizar agora"** na tela inicial. Isso fará a leitura automática dos arquivos de questões e o upload organizado para o seu banco MongoDB.
+3. Pronto! A plataforma está pronta para uso.
 
 ## Publicar na Vercel
 
